@@ -1,0 +1,175 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Result | SkinCheck AI</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: url("/static/chat.jpg") no-repeat center center/cover;
+      background-attachment: fixed;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      color: #333;
+    }
+    nav {
+      background: rgba(0, 121, 107, 0.8);
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      backdrop-filter: blur(6px);
+      color: #fff;
+    }
+    nav h2 { margin: 0; }
+    nav ul {
+      list-style: none;
+      display: flex;
+      gap: 20px;
+      margin: 0;
+    }
+    nav ul li { cursor: pointer; }
+    .container {
+      max-width: 1000px;
+      margin: 50px auto;
+      padding: 30px;
+      background: rgba(255,255,255,0.9);
+      border-radius: 15px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+    }
+    h1 { text-align: center; color: #00796b; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+      margin-top: 30px;
+    }
+    .card {
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease;
+    }
+    .card:hover { transform: translateY(-5px); }
+    h3 { margin-top: 0; color: #00796b; }
+  </style>
+</head>
+<body>
+  <nav>
+    <h2>SkinCheck AI</h2>
+    <ul>
+      <li onclick="location.href='index'">Home</li>
+      <li onclick="location.href='chatbot'">Detect</li>
+      <li onclick="location.href='about'">About</li>
+    </ul>
+  </nav>
+
+  <div class="container">
+    <h1>Detection Result</h1>
+    <div class="grid">
+      <div class="card">
+        <h3>📝 User Description</h3>
+        <p id="userDesc">Loading...</p>
+      </div>
+      <div class="card">
+        <h3>🩺 Predicted Disease</h3>
+        <p id="predictedDisease">Loading...</p>
+      </div>
+      <div class="card">
+        <h3>⚠ Symptoms</h3>
+        <p id="symptoms">Loading...</p>
+      </div>
+      <div class="card">
+        <h3>💊 Suggested Solution</h3>
+        <p id="solution">Loading...</p>
+        <button id="speakBtn">🔊 Speak Solution</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Symptoms + solutions mapping
+    const diseaseInfo = {
+      "Acne": {
+        symptoms: "Pimples, blackheads, oily skin",
+        solution: "Use mild cleanser, avoid oily foods, consult dermatologist if severe."
+      },
+      "Eczema": {
+        symptoms: "Itching, redness, irritation",
+        solution: "Use moisturizer, avoid allergens, consult a dermatologist if severe."
+      },
+      "Psoriasis": {
+        symptoms: "Dry, scaly patches, skin pain",
+        solution: "Apply medicated creams, stay hydrated, consult doctor for treatment."
+      },
+       "Actinic_Keratosis": {
+      symptoms: "Rough, scaly patches on sun-exposed skin",
+      solution: "Protect skin from sun, use sunscreen, dermatologist may recommend cryotherapy or medication."
+    },
+    "Benign_tumors": {
+      symptoms: "Non-cancerous lumps or growths on skin",
+      solution: "Monitor growth, seek medical check-up, surgery only if causing discomfort."
+    },
+    "Bullous": {
+      symptoms: "Large fluid-filled blisters on skin",
+      solution: "Keep affected area clean, avoid friction, consult doctor for treatment and medication."
+    },
+    "Candidiasis": {
+      symptoms: "Red, itchy rash, sometimes white patches (fungal infection)",
+      solution: "Keep area dry, use antifungal cream, maintain good hygiene, avoid tight clothing."
+    },
+    "DrugEruption": {
+      symptoms: "Rash, redness, itching caused by medication",
+      solution: "Stop suspected medicine (only after doctor’s advice), consult dermatologist immediately."
+    },
+    "Infestations_Bites": {
+      symptoms: "Red bumps, itching, swelling due to insect/parasite bites",
+      solution: "Apply anti-itch cream, keep skin clean, avoid scratching, consult doctor if spreading."
+    },
+    "Lichen": {
+      symptoms: "Purple, itchy, flat bumps on skin",
+      solution: "Use medicated creams, avoid scratching, consult dermatologist for treatment."
+    },
+    "Lupus": {
+      symptoms: "Butterfly-shaped rash on face, joint pain, fatigue",
+      solution: "Protect from sunlight, use prescribed medicines, regular check-ups with rheumatologist/dermatologist."
+    },
+    "Psoriasis": {
+      symptoms: "Dry, thick, scaly patches on skin, itching",
+      solution: "Apply medicated creams, moisturize skin, manage stress, consult dermatologist."
+    }
+    };
+
+    window.onload = function() {
+      // Get data from localStorage
+      const userDesc = localStorage.getItem("userDesc");
+      const prediction = localStorage.getItem("prediction");
+
+      document.getElementById("userDesc").innerText = userDesc || "No description provided.";
+      document.getElementById("predictedDisease").innerText = prediction || "No prediction available.";
+
+      if (prediction && diseaseInfo[prediction]) {
+        document.getElementById("symptoms").innerText = diseaseInfo[prediction].symptoms;
+        document.getElementById("solution").innerText = diseaseInfo[prediction].solution;
+      } else {
+        document.getElementById("symptoms").innerText = "N/A";
+        document.getElementById("solution").innerText = "N/A";
+      }
+       // Speak solution button
+        const speakBtn = document.getElementById("speakBtn");
+        speakBtn.addEventListener("click", () => {
+            const solutionText = document.getElementById("solution").innerText;
+            if (solutionText && solutionText !== "N/A") {
+                const utterance = new SpeechSynthesisUtterance(solutionText);
+                utterance.lang = "en-US";
+                speechSynthesis.speak(utterance);
+            }
+        });
+    };
+  </script>
+</body>
+</html>

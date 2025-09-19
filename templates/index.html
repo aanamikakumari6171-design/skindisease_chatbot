@@ -1,0 +1,143 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AI Agreement</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Poppins', sans-serif;
+      background: url("/static/agree.jpg") no-repeat center center/cover;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+    }
+
+    /* Agreement Box with Glass Effect */
+    .agreement-box {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(12px);
+      padding: 30px;
+      border-radius: 20px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.25);
+      max-width: 500px;
+      text-align: center;
+      color: #fff;
+      animation: fadeIn 1.2s ease-in-out;
+    }
+
+    .agreement-box h2 {
+      color: #00e5ff;
+      margin-bottom: 15px;
+      font-size: 22px;
+      text-transform: uppercase;
+    }
+
+    .agreement-box p {
+      margin: 20px 0;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    /* Attractive Button */
+    .agreement-box button {
+      padding: 12px 25px;
+      background: linear-gradient(90deg, #00796b, #00bfa5);
+      color: white;
+      font-size: 15px;
+      font-weight: bold;
+      border: none;
+      border-radius: 25px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .agreement-box button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 5px 15px rgba(0,191,165,0.6);
+    }
+
+    /* Popup Styling */
+    .popup-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      backdrop-filter: blur(4px);
+      animation: fadeIn 0.5s ease-in-out;
+    }
+
+    .popup {
+      background: #fff;
+      padding: 25px 30px;
+      border-radius: 15px;
+      text-align: center;
+      max-width: 400px;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+      animation: slideUp 0.6s ease;
+    }
+
+    .popup h3 {
+      color: #d32f2f;
+      margin-bottom: 10px;
+      font-size: 20px;
+    }
+
+    .popup p {
+      margin-bottom: 20px;
+      font-size: 14px;
+      color: #444;
+    }
+
+    .popup button {
+      background: #d32f2f;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 25px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: 0.3s;
+    }
+
+    .popup button:hover {
+      background: #b71c1c;
+    }
+
+    /* Animations */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(40px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
+  </style>
+</head>
+<body>
+  <div class="agreement-box">
+    <h2>AI-Based Information Agreement</h2>
+    <p>This site uses AI to provide health-related suggestions.<br>
+       ⚠ It is not a substitute for professional medical advice.</p>
+    <button onclick="location.href='chatbot'">I Understand</button>
+  </div>
+
+  <!-- Popup on Load -->
+  <div class="popup-overlay" id="popup">
+    <div class="popup">
+      <h3>⚠ Attention</h3>
+      <p>All information provided is AI-generated and not from a certified doctor.</p>
+      <button onclick="document.getElementById('popup').style.display='none'">Got it</button>
+    </div>
+  </div>
+</body>
+</html>
