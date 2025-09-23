@@ -1,0 +1,28 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Login - SkinCheck AI</title>
+  <style>
+    body {font-family: Arial, sans-serif; background:url("/static/agree.jpg") no-repeat center center/cover;; display:flex; justify-content:center; align-items:center; height:100vh;}
+    .card{background:white; padding:30px; border-radius:12px; box-shadow:0 4px 10px rgba(0,0,0,0.2); width:300px; text-align:center;}
+    input{width:100%; padding:10px; margin:10px 0; border:1px solid #ccc; border-radius:6px;}
+    button{width:100%; padding:10px; background:#0e2f61; color:white; border:none; border-radius:6px; cursor:pointer;}
+    button:hover{background:#144d8c;}
+    a{text-decoration:none; color:#0e2f61;}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Login</h2>
+    <form method="POST">
+      <input type="email" name="email" placeholder="Enter your Gmail" required>
+      <input type="password" name="password" placeholder="Enter your password" required>
+      <button type="submit">Login</button>
+    </form>
+    {% if error %}<p style="color:red">{{ error }}</p>{% endif %}
+    <p>New user? <a href="{{ url_for('signup') }}">Sign up</a></p>
+  </div>
+</body>
+</html>
