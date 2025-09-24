@@ -1,1 +1,13 @@
-{"users": {}}
+{
+  "users": {
+    "user@gmail.com": {
+      "password": "scrypt:32768:8:1$M39qJEauJAYfd6w9$7070ae11d8898029b043b9248e2350a2e0dee55ab5179379c1cb47d29fda64480049ab2ce21eaa85e5559bee970d3e609024268f0bb51da17405127526ce5603"
+    },
+    "aanamikasingh640@gmail.com": {
+      "password": "scrypt:32768:8:1$Ld5qrimnraCeFsXw$8fe8654f2267ccb307bfbf84e1011718ecea7ce2c5386a500c9c99f3939cbe03fa304f11df19dc6a6bdbc3e1ae213789d9fa0b7226dee3dc2abfeeb8b606b60c"
+    },
+    "userr@gmail.com": {
+      "password": "scrypt:32768:8:1$7wMByN6PLVAZtLbq$d10e9a1e072ca60fe5fdda65316ff78058db4fd49acc852102dec0af7a71793ba798f53bf473ce4b62d2021c830f31a51f1adaedb12f1fc49de00a78bb251646"
+    }
+  }
+}

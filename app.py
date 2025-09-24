@@ -112,14 +112,6 @@ def about():
 def result():
     return render_template("result.html")
 
-@app.route("/admin")
-@login_required
-def admin():
-    # Optionally restrict to one admin email
-    if session.get("user") != "admin@gmail.com":
-        return "Access Denied", 403
-    return render_template("admin.html")
-
 # ---------------- Prediction API ---------------- #
 @app.route("/predict", methods=["POST"])
 @login_required
