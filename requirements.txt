@@ -3,5 +3,5 @@ tensorflow
 numpy
 pillow
 werkzeug
-sqlite3
+
 gunicorn
