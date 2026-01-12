@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Derma Admin Dashboard</title>
+  <style>
+    :root {
+      --bg:#0f1724; --card:#0b1220; --accent:#06b6d4; --muted:#9aa5b1;
+      --glass: rgba(255,255,255,0.03); --success:#10b981; --danger:#ef4444;
+      --radius:12px; font-family: Inter, Arial, sans-serif;
+    }
+    body { background: linear-gradient(180deg,#041022 0%, #071526 100%); color: #e6eef6; margin:0; padding:20px; }
+    .app { max-width:1200px; margin:auto; padding:20px; border-radius:16px; background: var(--card); }
+    table { width:100%; border-collapse: collapse; margin-top:20px; }
+    th, td { padding:10px; border-bottom:1px solid rgba(255,255,255,0.1); }
+    th { color: var(--muted); font-size:12px; text-align:left; }
+    .pill { display:inline-block; padding:4px 10px; border-radius:999px; background:rgba(255,255,255,0.03); font-size:12px; }
+    .thumb { width:56px; height:40px; object-fit:cover; border-radius:6px; cursor:pointer; }
+    button { cursor:pointer; border:none; border-radius:6px; padding:6px 10px; margin-right:5px; }
+    .btn-approve { background:var(--success); color:#fff; }
+    .btn-reject { background:var(--danger); color:#fff; }
+    .btn-delete { background:#444; color:#fff; }
+    h1 { font-size:24px; }
+    .summary { display:flex; gap:20px; margin-top:20px; }
+    .stat { background:var(--card); padding:12px; border-radius:12px; flex:1; display:flex; justify-content:space-between; align-items:center; }
+    .stat h3 { margin:0; font-size:18px; }
+    .small { font-size:12px; color:var(--muted); }
+  </style>
+</head>
+<body>
+
+<div class="app">
+  <header>
+    <h1>Admin Dashboard</h1>
+  </header>
+
+  <!-- Summary -->
+  <div class="summary">
+    <div class="stat">
+      <div>
+        <h3 id="totalPatients">0</h3>
+        <div class="small">Total Patients</div>
+      </div>
+      <div class="pill">Live</div>
+    </div>
+    <div class="stat">
+      <div>
+        <h3 id="pendingReview">0</h3>
+        <div class="small">Pending Review</div>
+      </div>
+      <div class="pill">Action</div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div style="margin-top:20px;">
+    <input id="search" placeholder="Search by name, email, disease..." style="padding:8px; width:250px;">
+    <select id="diseaseFilter" style="padding:8px;">
+      <option value="">All Diseases</option>
+      <option>Acne</option>
+      <option>Eczema</option>
+      <option>Psoriasis</option>
+      <option>Fungal</option>
+    </select>
+    <input id="dateFrom" type="date" style="padding:8px;">
+    <input id="dateTo" type="date" style="padding:8px;">
+    <button id="clearFilters" style="padding:6px 10px;">Clear</button>
+  </div>
+
+  <!-- Patient Table -->
+  <table>
+    <thead>
+      <tr>
+        <th>Patient</th><th>Email</th><th>Disease</th><th>Confidence</th><th>Date</th><th>Status</th><th>Image</th><th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="tableBody">
+      <!-- JS will populate rows -->
+    </tbody>
+  </table>
+</div>
+
+<script>
+  // Patients passed from Flask
+  const patients = {{ patients | tojson }};
+
+  const tableBody = document.getElementById('tableBody');
+  const totalPatients = document.getElementById('totalPatients');
+  const pendingReview = document.getElementById('pendingReview');
+
+  function renderRows(list){
+    tableBody.innerHTML = '';
+    list.forEach(p => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${p.name}</td>
+        <td>${p.email}</td>
+        <td>${p.disease}</td>
+        <td>${p.confidence.toFixed(2)}</td>
+        <td>${p.date}</td>
+        <td>${p.status}</td>
+        <td><img src="/uploads/${p.img}" class="thumb"></td>
+        <td>
+          <button class="btn-approve" onclick="updateStatus(${p.id}, 'approve')">Approve</button>
+          <button class="btn-reject" onclick="updateStatus(${p.id}, 'reject')">Reject</button>
+          <button class="btn-delete" onclick="updateStatus(${p.id}, 'delete')">Delete</button>
+        </td>
+      `;
+      tableBody.appendChild(tr);
+    });
+
+    totalPatients.textContent = patients.length;
+    pendingReview.textContent = patients.filter(p => p.status === 'Pending').length;
+  }
+
+  function updateStatus(id, action){
+    fetch(`/admin/${action}/${id}`, { method:'POST' })
+      .then(res => res.json())
+      .then(data => {
+        if(data.success){
+          // update local array
+          const idx = patients.findIndex(p => p.id===id);
+          if(action === 'approve') patients[idx].status = 'Reviewed';
+          if(action === 'reject') patients[idx].status = 'Rejected';
+          if(action === 'delete') patients.splice(idx,1);
+          renderRows(filterAndSearch());
+        }
+      });
+  }
+
+  // Filters
+  document.getElementById('search').addEventListener('input', ()=>renderRows(filterAndSearch()));
+  document.getElementById('diseaseFilter').addEventListener('change', ()=>renderRows(filterAndSearch()));
+  document.getElementById('dateFrom').addEventListener('change', ()=>renderRows(filterAndSearch()));
+  document.getElementById('dateTo').addEventListener('change', ()=>renderRows(filterAndSearch()));
+  document.getElementById('clearFilters').addEventListener('click', ()=>{
+    document.getElementById('search').value='';
+    document.getElementById('diseaseFilter').value='';
+    document.getElementById('dateFrom').value='';
+    document.getElementById('dateTo').value='';
+    renderRows(patients);
+  });
+
+  function filterAndSearch(){
+    const q = document.getElementById('search').value.trim().toLowerCase();
+    const disease = document.getElementById('diseaseFilter').value;
+    const from = document.getElementById('dateFrom').value;
+    const to = document.getElementById('dateTo').value;
+    return patients.filter(p=>{
+      if(disease && p.disease!==disease) return false;
+      if(from && p.date<from) return false;
+      if(to && p.date>to) return false;
+      if(!q) return true;
+      return p.name.toLowerCase().includes(q) || p.email.toLowerCase().includes(q) || p.disease.toLowerCase().includes(q);
+    });
+  }
+
+  // Init
+  renderRows(patients);
+</script>
+
+</body>
+</html>

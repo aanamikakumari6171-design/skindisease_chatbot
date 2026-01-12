@@ -1,0 +1,18 @@
+# Virtual environment
+venv/
+
+# Python cache
+__pycache__/
+
+# Uploads
+uploads/
+
+# Dataset
+dataset/
+
+# Database
+database.db
+database.sqbpro
+
+# ML model (too large for GitHub)
+skin_disease_model.h5

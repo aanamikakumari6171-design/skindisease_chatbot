@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-   <link rel="icon" href="static/DermaDocAI.png/" type="image/x-icon">
+  <link rel="icon" href="static/DermaDocAI.png/" type="image/x-icon">
   <title>AI Agreement</title>
   <style>
     body {
@@ -17,6 +17,49 @@
       align-items: center;
       overflow: hidden;
     }
+    body::before {
+      content: "";
+      position: fixed;
+      top:0; left:0; width:100%; height:100%;
+      background: rgba(0,0,0,0.4);
+      backdrop-filter: blur(3px);
+      z-index: -1;
+    }
+ /* Navbar Styling */
+    nav {
+      background: linear-gradient(90deg, #00796b);
+      padding: 12px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+      position: sticky;
+      top:0;
+      z-index: 10;
+    }
+    nav .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: white;
+      font-size: 22px;
+      font-weight: bold;
+      text-decoration: none;
+    }
+    nav .logo img {
+      height: 40px;
+      width: 40px;
+      border-radius: 50%;
+      background: white;
+      padding: 5px;
+    }
+    nav ul {list-style: none; display: flex; gap: 25px;}
+    nav ul li a {
+      text-decoration: none; color: white; font-weight: 500; font-size: 16px;
+      padding: 6px 12px; border-radius: 6px;
+    }
+    nav ul li a:hover {background: rgba(255,255,255,0.2);}
+    nav ul li a.active {background: white; color: #0066cc; font-weight: bold;}
 
     /* Agreement Box with Glass Effect */
     .agreement-box {
@@ -62,7 +105,7 @@
       box-shadow: 0 5px 15px rgba(0,191,165,0.6);
     }
 
-    /* Popup Styling */
+    /* Popup on Load */
     .popup-overlay {
       position: fixed;
       top: 0; left: 0; width: 100%; height: 100%;
@@ -111,25 +154,81 @@
       background: #b71c1c;
     }
 
-    /* Animations */
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 1; }
+    /* Center Floating Popup */
+    .floating-popup {
+      position: fixed;
+      top: 20%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      background: rgba(0, 191, 165, 0.9);
+      color: white;
+      padding: 12px 25px;
+      border-radius: 30px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: bold;
+      font-size: 18px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      opacity: 1;
+      z-index: 999;
+      animation: floatLoop 2s infinite alternate ease-in-out;
     }
 
-    @keyframes slideUp {
-      from { transform: translateY(40px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
+    .floating-popup.show {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 1;
     }
 
-  </style>
+    .floating-popup img {
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      background: white;
+      padding: 2px;
+    }
+.popup-message {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #00796b;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  animation: fadeInOut 5s ease forwards; /* 👈 5s tak dikhega */
+}
+
+/* Fade In + Hold + Fade Out Animation */
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  10% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  70% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+}
+
+
+</style>
 </head>
 <body>
   <div class="agreement-box">
     <h2>AI-Based Information Agreement</h2>
     <p>This site uses AI to provide health-related suggestions.<br>
        ⚠ It is not a substitute for professional medical advice.</p>
-    <button onclick="location.href='chatbot'">I Understand</button>
+    <button onclick="location.href='login'">I Understand</button>
   </div>
 
   <!-- Popup on Load -->
@@ -140,5 +239,24 @@
       <button onclick="document.getElementById('popup').style.display='none'">Got it</button>
     </div>
   </div>
+
+ <!-- Top-Center Floating DermaDoc AI Popup -->
+<div class="floating-popup" id="floatingPopup">
+  <img src="{{ url_for('static', filename='DermaDocAI.png') }}" alt="Logo">
+  DermaDoc AI
+</div>
+
+  <script>
+    function showFloatingPopup() {
+      const popup = document.getElementById('floatingPopup');
+      popup.classList.add('show');
+      setTimeout(() => {
+        popup.classList.remove('show');
+      }, 5000); // visible for 5 seconds
+    }
+
+    // Show every 1 seconds
+    setInterval(showFloatingPopup, 2000);
+  </script>
 </body>
 </html>

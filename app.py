@@ -1,4 +1,3 @@
-
 from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 from werkzeug.security import generate_password_hash, check_password_hash
 from tensorflow.keras.models import load_model
@@ -6,30 +5,21 @@ from tensorflow.keras.preprocessing import image
 import numpy as np
 import os, uuid, json
 from functools import wraps
+from db import get_db, close_db
 
 app = Flask(__name__)
-app.secret_key = "replace_with_a_secure_random_key"  # change in production
+@app.teardown_appcontext
+def teardown_db(exception):
+    close_db(exception)
+
+app.secret_key = "replace_with_a_secure_random_key"
 
 # ---------------- Load Model ---------------- #
 model = load_model("skin_disease_model.h5")
 with open("class_labels.json", "r") as f:
     class_labels = json.load(f)
 
-# ---------------- Users Storage ---------------- #
-USERS_FILE = "users.json"
-
-def load_users():
-    if not os.path.exists(USERS_FILE):
-        with open(USERS_FILE, "w") as f:
-            json.dump({"users": {}}, f)
-    with open(USERS_FILE, "r") as f:
-        return json.load(f)
-
-def save_users(data):
-    with open(USERS_FILE, "w") as f:
-        json.dump(data, f, indent=2)
-
-# ---------------- Login Required Decorator ---------------- #
+# ---------------- Decorators ---------------- #
 def login_required(f):
     @wraps(f)
     def wrapped(*args, **kwargs):
@@ -38,109 +28,201 @@ def login_required(f):
         return f(*args, **kwargs)
     return wrapped
 
+def admin_required(f):
+    @wraps(f)
+    def wrapped(*args, **kwargs):
+        if session.get("role") != "admin":
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return wrapped
+
 # ---------------- Image Preprocess ---------------- #
 def preprocess_image(img_path):
-    img = image.load_img(img_path, target_size=(128, 128), color_mode="rgb")
+    img = image.load_img(img_path, target_size=(128, 128))
     img_array = image.img_to_array(img) / 255.0
-    img_array = np.expand_dims(img_array, axis=0)
-    return img_array
+    return np.expand_dims(img_array, axis=0)
 
 # ---------------- Routes ---------------- #
 @app.route("/")
 def home():
-    return redirect(url_for("login"))
+    return redirect(url_for("index_page"))
 
+@app.route("/index")
+def index_page():
+    return render_template("index.html")
+
+# ---------------- SIGNUP ---------------- #
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
     error = None
     if request.method == "POST":
-        email = request.form.get("email", "").strip().lower()
-        password = request.form.get("password", "").strip()
+        name = request.form.get("name")
+        email = request.form.get("email").lower()
+        phone = request.form.get("phone")
+        age = request.form.get("age")
+        gender = request.form.get("gender")
+        role = request.form.get("role")
+        password = request.form.get("password")
+        confirm = request.form.get("confirm_password")
 
-        if not email or not password:
-            error = "Email and password required."
+        if password != confirm:
+            error = "Passwords do not match"
         else:
-            data = load_users()
-            if email in data["users"]:
-                error = "Account already exists."
-            else:
-                hashed = generate_password_hash(password)
-                data["users"][email] = {"password": hashed}
-                save_users(data)
-                session["user"] = email
-                return redirect(url_for("index_page"))
+            hashed = generate_password_hash(password)
+            try:
+                db = get_db()
+                cur = db.cursor()
+                cur.execute("""
+                    INSERT INTO users (name, email, phone, age, gender, role, password)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (name, email, phone, age, gender, role, hashed))
+                db.commit()
 
+                session["user"] = email
+                session["role"] = role
+                if role == "admin":
+                    return redirect(url_for("admin_dashboard"))
+                return redirect(url_for("chatbot"))
+
+            except Exception as e:
+                print("Signup Error:", e)
+                error = "User already exists"
     return render_template("signup.html", error=error)
 
+# ---------------- LOGIN ---------------- #
 @app.route("/login", methods=["GET", "POST"])
 def login():
     error = None
     if request.method == "POST":
-        email = request.form.get("email", "").strip().lower()
-        password = request.form.get("password", "").strip()
-        data = load_users()
-        user = data["users"].get(email)
-        if user and check_password_hash(user["password"], password):
+        email = request.form.get("email").lower()
+        password = request.form.get("password")
+
+        db = get_db()
+        cur = db.cursor()
+        cur.execute("SELECT password, role FROM users WHERE email=?", (email,))
+        user = cur.fetchone()
+        if user and check_password_hash(user[0], password):
             session["user"] = email
-            return redirect(url_for("index_page"))
+            session["role"] = user[1]
+
+            cur.execute("INSERT INTO login_history (email) VALUES (?)", (email,))
+            db.commit()
+
+
+            if session["role"] == "admin":
+                return redirect(url_for("admin_dashboard"))
+            else:
+                return redirect(url_for("chatbot"))
         else:
-            error = "Invalid email or password."
+            error = "Invalid credentials"
+            db.close()
     return render_template("login.html", error=error)
 
+# ---------------- LOGOUT ---------------- #
 @app.route("/logout")
 def logout():
-    session.pop("user", None)
+    session.clear()
     return redirect(url_for("login"))
 
-@app.route("/index")
-@login_required
-def index_page():
-    return render_template("index.html")
-
+# ---------------- CHATBOT ---------------- #
 @app.route("/chatbot")
 @login_required
 def chatbot():
     return render_template("chatbot.html")
-
 @app.route("/about")
-@login_required
 def about():
     return render_template("about.html")
 
-@app.route("/result")
-@login_required
-def result():
-    return render_template("result.html")
 
-# ---------------- Prediction API ---------------- #
+# ---------------- ADMIN DASHBOARD ---------------- #
+@app.route("/admin-dashboard")
+@login_required
+@admin_required
+def admin_dashboard():
+    db = get_db()
+    cur = db.cursor()
+    # Fetch all patient diagnosis entries
+    cur.execute("""
+        SELECT id, user_email, disease, confidence, date, status, image_name
+        FROM diagnosis
+        ORDER BY date DESC
+    """)
+    patients = cur.fetchall()
+
+
+    # Convert to list of dicts
+    patient_list = [
+        {
+            "id": row[0],
+            "name": row[1],
+            "email": row[1],
+            "disease": row[2],
+            "confidence": row[3],
+            "date": row[4],
+            "status": row[5] or "Pending",
+            "img": row[6]
+        } for row in patients
+    ]
+    return render_template("admin_dashboard.html", patients=patient_list)
+
+# ---------------- APPROVE / REJECT / DELETE ---------------- #
+@app.route("/admin/<action>/<int:id>", methods=["POST"])
+@login_required
+@admin_required
+def admin_action(action, id):
+    db = get_db()
+    cur = db.cursor()
+    if action.lower() == "approve":
+        cur.execute("UPDATE diagnosis SET status='Reviewed' WHERE id=?", (id,))
+    elif action.lower() == "reject":
+        cur.execute("UPDATE diagnosis SET status='Rejected' WHERE id=?", (id,))
+    elif action.lower() == "delete":
+        cur.execute("DELETE FROM diagnosis WHERE id=?", (id,))
+    db.commit()
+    
+    return jsonify({"success": True})
+
+# ---------------- PREDICT ---------------- #
 @app.route("/predict", methods=["POST"])
 @login_required
 def predict():
     if "file" not in request.files:
-        return jsonify({"error": "No file provided"}), 400
+        return jsonify({"error": "No file uploaded"}), 400
 
     file = request.files["file"]
-    if file.filename == "":
-        return jsonify({"error": "No selected file"}), 400
+    filename = str(uuid.uuid4()) + os.path.splitext(file.filename)[1]
 
     os.makedirs("uploads", exist_ok=True)
-    filename = str(uuid.uuid4()) + os.path.splitext(file.filename)[1]
-    filepath = os.path.join("uploads", filename)
-    file.save(filepath)
+    path = os.path.join("uploads", filename)
+    file.save(path)
 
     try:
-        img_array = preprocess_image(filepath)
-        prediction = model.predict(img_array)
-        predicted_class_index = np.argmax(prediction)
-        result = class_labels[predicted_class_index]
-        return jsonify({"prediction": result})
+        img_array = preprocess_image(path)
+        pred = model.predict(img_array)
+        index = int(np.argmax(pred))
+        disease = class_labels[index]
+        confidence = float(np.max(pred))
 
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        db = get_db()
+        cur = db.cursor()
+        cur.execute("""
+            INSERT INTO diagnosis (user_email, disease, confidence, date, status, image_name)
+            VALUES (?, ?, ?, date('now'), 'Pending', ?)
+        """, (session["user"], disease, confidence, filename))
+        db.commit()
+        
+
+        return jsonify({"prediction": disease, "confidence": confidence})
+
     finally:
-        if os.path.exists(filepath):
-            os.remove(filepath)
+        if os.path.exists(path):
+            os.remove(path)
 
-# ---------------- Run ---------------- #
+# ---------------- RUN ---------------- #
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(
+        host="0.0.0.0",   # required for hosting
+        port=5000,        # default port
+        debug=True,       # keep True for development
+        use_reloader=False
+    )
